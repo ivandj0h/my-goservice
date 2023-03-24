@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"github.com/ivandi1980/my-goservice/handlers"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"time"
 )
 
 func main() {
@@ -21,6 +24,30 @@ func main() {
 	sm.Handle("/", helloHandler)
 	sm.Handle("/goodbye", goodbyeHandler)
 
+	// Create a new server
+	server := &http.Server{
+		Addr:         ":8888",
+		Handler:      sm,
+		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  1 * time.Second,
+		WriteTimeout: 1 * time.Second,
+	}
+
 	// Start the server
-	http.ListenAndServe(":8888", sm)
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			logger.Fatal(err)
+		}
+	}()
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt)
+	signal.Notify(sigChan, os.Kill)
+
+	sig := <-sigChan
+	logger.Println("Received terminate, graceful shutdown", sig)
+
+	tc, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	server.Shutdown(tc)
 }
