@@ -1,17 +1,26 @@
 package main
 
 import (
+	"github.com/ivandi1980/my-goservice/handlers"
 	"log"
 	"net/http"
+	"os"
 )
 
 func main() {
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Hello World!")
+	// Call the handler directly
+	logger := log.New(os.Stdout, "product-api", log.LstdFlags)
 
-		w.Write([]byte("Hello World!"))
-	})
+	// Create the handlers
+	helloHandler := handlers.NewHello(logger)
+	goodbyeHandler := handlers.NewGoodbye(logger)
 
-	http.ListenAndServe(":9999", nil)
+	// Register the handler with the server
+	sm := http.NewServeMux()
+	sm.Handle("/", helloHandler)
+	sm.Handle("/goodbye", goodbyeHandler)
+
+	// Start the server
+	http.ListenAndServe(":8888", sm)
 }
